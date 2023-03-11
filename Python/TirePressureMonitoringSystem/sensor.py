@@ -1,12 +1,18 @@
 import random
+from typing import Protocol
 
-class Sensor(object):
 
+class SensorInterface(Protocol):
+    def pop_next_pressure_psi_value(self):
+        ...
+
+
+class Sensor:
     # The reading of the pressure value from the sensor is simulated in this implementation.
     # Because the focus of the exercise is on the other class.
 
     _OFFSET = 16
-        
+
     def pop_next_pressure_psi_value(self):
         pressure_telemetry_value = self.sample_pressure()
         return Sensor._OFFSET + pressure_telemetry_value

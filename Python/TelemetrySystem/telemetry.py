@@ -1,25 +1,17 @@
-from client import TelemetryClient
+from client import AbstractClient
+
 
 class TelemetryDiagnostics:
-    DiagnosticChannelConnectionString = "*111#"
+    DIAGNOSTIC_CHANNEL_CONNECTION_STRING = "*111#"
 
-    def __init__(self):
-        self._telemetry_client = TelemetryClient()
+    def __init__(self, client: AbstractClient):
+        self._telemetry_client = client
         self.diagnostic_info = ""
 
-    def check_transmission(self):
+    def check_transmission(self, client_message: str):
         self.diagnostic_info = ""
         self._telemetry_client.disconnect()
 
-        retryLeft = 3
-        while ((not self._telemetry_client.online_status) and retryLeft > 0):
-            self._telemetry_client.connect(TelemetryDiagnostics.DiagnosticChannelConnectionString)
-            retryLeft -= 1
+        self._telemetry_client.connect(self.DIAGNOSTIC_CHANNEL_CONNECTION_STRING)
 
-        if not self._telemetry_client.online_status:
-            raise Exception("Unable to connect.")
-
-        self._telemetry_client.send(TelemetryClient.DIAGNOSTIC_MESSAGE)
-        self.diagnostic_info = self._telemetry_client.receive()
-
-
+        self.diagnostic_info = self._telemetry_client.send(client_message)

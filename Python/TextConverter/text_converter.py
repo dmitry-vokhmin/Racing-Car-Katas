@@ -1,11 +1,7 @@
-
-# This is for Python 3
 import html as html_converter
 
-# for Python 2 uncomment this line
-#import cgi as html_converter
 
-class UnicodeFileToHtmlTextConverter(object):
+class UnicodeFileToHtmlTextConverter:
 
     def __init__(self, full_filename_with_path):
         self.full_filename_with_path = full_filename_with_path

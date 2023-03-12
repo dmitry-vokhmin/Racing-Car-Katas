@@ -1,48 +1,35 @@
 import random
+from abc import ABC, abstractmethod
 
-class TelemetryClient(object):
 
-    # The communication with the server is simulated in this implementation.
-    # Because the focus of the exercise is on the other class.
-
-    DIAGNOSTIC_MESSAGE = "AT#UD"
-
-    def __init__(self):
-        self._online_status = False
-        self._diagnosticMessageJustSent = False
+class AbstractClient(ABC):
+    @property
+    @abstractmethod
+    def online_status(self):
+        pass
 
     @property
-    def online_status(self):
-        return self._online_status
+    @abstractmethod
+    def diagnostic_message(self):
+        pass
 
-    def connect(self, telemetry_server_connection_string):
-        if (telemetry_server_connection_string is None or telemetry_server_connection_string == ""):
-            raise Exception()
+    @abstractmethod
+    def connect(self, telemetry_server_connection_string: str):
+        pass
 
-        # Fake the connection with 20% chances of success
-        success = random.randint(1, 10) <= 2
-
-        self._online_status = success
-
+    @abstractmethod
     def disconnect(self):
-        self._online_status = False
+        pass
 
-    def send(self, message):
-        if (message is None or message == ""):
-            raise Exception()
-
-        # The simulation of Send() actually just remember if the last message sent was a diagnostic message.
-        # This information will be used to simulate the Receive(). Indeed there is no real server listening.
-        if (message == TelemetryClient.DIAGNOSTIC_MESSAGE):
-            self._diagnosticMessageJustSent = True
-        else:
-            self._diagnosticMessageJustSent = False
+    @abstractmethod
+    def send(self, telemetry_message: str):
+        pass
 
 
-    def receive(self):
-        if (self._diagnosticMessageJustSent):
-            # Simulate the reception of the diagnostic message
-            message = """\
+class TelemetryClient(AbstractClient):
+    # The communication with the server is simulated in this implementation.
+    # Because the focus of the exercise is on the other class.
+    _MESSAGE = """\
 LAST TX rate................ 100 MBPS\r\n
 HIGHEST TX rate............. 100 MBPS\r\n
 LAST RX rate................ 100 MBPS\r\n
@@ -57,14 +44,52 @@ RX Digital Los.............. 0.10\r\n
 BEP Test.................... -5\r\n
 Local Rtrn Count............ 00\r\n
 Remote Rtrn Count........... 00"""
-            self._diagnosticMessageJustSent = False
+    _DIAGNOSTIC_MESSAGE = "AT#UD"
+
+    def __init__(self, retries: int = 3):
+        self.retries = retries
+        self._online_status = False
+
+    @property
+    def online_status(self):
+        return self._online_status
+
+    @property
+    def diagnostic_message(self):
+        return self._DIAGNOSTIC_MESSAGE
+
+    def connect(self, telemetry_server_connection_string):
+        if telemetry_server_connection_string is None or telemetry_server_connection_string == "":
+            raise Exception()
+
+        retry_left = self.retries
+        while not self.online_status and retry_left > 0:
+            # Fake the connection with 20% chances of success
+            success = random.randint(1, 10) <= 2
+            self._online_status = success
+            retry_left -= 1
+
+        if not self.online_status:
+            raise Exception("Unable to connect.")
+
+    def disconnect(self):
+        self._online_status = False
+
+    def send(self, telemetry_message):
+        if telemetry_message is None or telemetry_message == "":
+            raise Exception()
+
+        # The simulation of Send() actually just remember if the last message sent was a diagnostic message.
+        # This information will be used to simulate the Receive(). Indeed there is no real server listening.
+        if telemetry_message == self.diagnostic_message:
+            # Simulate the reception of the diagnostic message
+            message = self._MESSAGE
         else:
             #  Simulate the reception of a response message returning a random message.
             message = ""
-            messageLength = random.randint(0, 50) + 60
-            i = messageLength
-            while(i >= 0):
+            message_length = random.randint(0, 50) + 60
+            while message_length >= 0:
                 message += chr((random.randint(0, 40) + 86))
-                i -= 1
+                message_length -= 1
 
         return message

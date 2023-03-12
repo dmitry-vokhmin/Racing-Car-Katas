@@ -22,59 +22,14 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
-    def send(self, message: str):
-        pass
-
-    @abstractmethod
-    def receive(self):
+    def send(self, telemetry_message: str):
         pass
 
 
 class TelemetryClient(AbstractClient):
     # The communication with the server is simulated in this implementation.
     # Because the focus of the exercise is on the other class.
-
-    _DIAGNOSTIC_MESSAGE = "AT#UD"
-
-    def __init__(self):
-        self._online_status = False
-        self._diagnostic_message_just_sent = False
-
-    @property
-    def online_status(self):
-        return self._online_status
-
-    @property
-    def diagnostic_message(self):
-        return self._DIAGNOSTIC_MESSAGE
-
-    def connect(self, telemetry_server_connection_string):
-        if telemetry_server_connection_string is None or telemetry_server_connection_string == "":
-            raise Exception()
-
-        # Fake the connection with 20% chances of success
-        success = random.randint(1, 10) <= 2
-
-        self._online_status = success
-
-    def disconnect(self):
-        self._online_status = False
-
-    def send(self, message):
-        if message is None or message == "":
-            raise Exception()
-
-        # The simulation of Send() actually just remember if the last message sent was a diagnostic message.
-        # This information will be used to simulate the Receive(). Indeed there is no real server listening.
-        if message == self.diagnostic_message:
-            self._diagnostic_message_just_sent = True
-        else:
-            self._diagnostic_message_just_sent = False
-
-    def receive(self):
-        if self._diagnostic_message_just_sent:
-            # Simulate the reception of the diagnostic message
-            message = """\
+    _MESSAGE = """\
 LAST TX rate................ 100 MBPS\r\n
 HIGHEST TX rate............. 100 MBPS\r\n
 LAST RX rate................ 100 MBPS\r\n
@@ -89,7 +44,46 @@ RX Digital Los.............. 0.10\r\n
 BEP Test.................... -5\r\n
 Local Rtrn Count............ 00\r\n
 Remote Rtrn Count........... 00"""
-            self._diagnostic_message_just_sent = False
+    _DIAGNOSTIC_MESSAGE = "AT#UD"
+
+    def __init__(self, retries: int = 3):
+        self.retries = retries
+        self._online_status = False
+
+    @property
+    def online_status(self):
+        return self._online_status
+
+    @property
+    def diagnostic_message(self):
+        return self._DIAGNOSTIC_MESSAGE
+
+    def connect(self, telemetry_server_connection_string):
+        if telemetry_server_connection_string is None or telemetry_server_connection_string == "":
+            raise Exception()
+
+        retry_left = self.retries
+        while not self.online_status and retry_left > 0:
+            # Fake the connection with 20% chances of success
+            success = random.randint(1, 10) <= 2
+            self._online_status = success
+            retry_left -= 1
+
+        if not self.online_status:
+            raise Exception("Unable to connect.")
+
+    def disconnect(self):
+        self._online_status = False
+
+    def send(self, telemetry_message):
+        if telemetry_message is None or telemetry_message == "":
+            raise Exception()
+
+        # The simulation of Send() actually just remember if the last message sent was a diagnostic message.
+        # This information will be used to simulate the Receive(). Indeed there is no real server listening.
+        if telemetry_message == self.diagnostic_message:
+            # Simulate the reception of the diagnostic message
+            message = self._MESSAGE
         else:
             #  Simulate the reception of a response message returning a random message.
             message = ""

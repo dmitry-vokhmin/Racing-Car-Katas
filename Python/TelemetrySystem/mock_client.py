@@ -13,8 +13,6 @@ class MockClient(AbstractClient):
 
     @property
     def online_status(self):
-        if self.override_online_status:
-            return False
         return self._online_status
 
     @property
@@ -22,24 +20,19 @@ class MockClient(AbstractClient):
         return self._DIAGNOSTIC_MESSAGE
 
     def connect(self, telemetry_server_connection_string):
+        if self.override_online_status:
+            raise Exception("Unable to connect.")
         self._online_status = True
 
     def disconnect(self):
         self._online_status = False
 
-    def send(self, message):
-        if message == self.diagnostic_message:
-            self._diagnostic_message_just_sent = True
-        else:
-            self._diagnostic_message_just_sent = False
-
-    def receive(self):
-        if self._diagnostic_message_just_sent:
+    def send(self, telemetry_message):
+        if telemetry_message == self.diagnostic_message:
             # Simulate the reception of the diagnostic message
             message = self.TEST_DIAGNOSTIC_RESPONSE
             self._diagnostic_message_just_sent = False
         else:
-            #  Simulate the reception of a response message returning a random message.
             message = self.TEST_OTHER_RESPONSE
 
         return message
